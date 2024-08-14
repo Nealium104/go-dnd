@@ -2,16 +2,78 @@ package main
 
 import (
 	"fmt"
+	"math/rand/v2"
 )
 
 type Character struct {
-	Name string
+	Name           string
+	Health         int
+	InitativeBonus int
+	Initative      int
+	ItemList       []Item
+}
+
+type Item struct {
+	Name  string
+	Bonus int
 }
 
 func main() {
-	var characterName string
-	fmt.Println("Hello, go-dnd! What's your name?")
-	fmt.Scanln(&characterName)
-	player := Character{Name: characterName}
-	fmt.Printf("Character Name is: %v \n", player.Name)
+	characterSlice := []Character{}
+	var amount int
+	fmt.Println("Hello, go-dnd! How many monsters and characters will you be using?")
+	fmt.Scanln(&amount)
+	for i := 0; i < amount; i++ {
+		characterSlice = append(characterSlice, createCharacter())
+	}
+	fmt.Println("Rolling initative!")
+	for i := 0; i < len(characterSlice); i++ {
+		currentCharacter := characterSlice[i]
+		roll := rand.IntN(20)
+		fmt.Printf("%v rolled a %v. Their bonus is %v, so their initative is %v\n", currentCharacter.Name, roll, currentCharacter.InitativeBonus, roll+currentCharacter.InitativeBonus)
+	}
+	sorted := sortOrderByInitative(characterSlice)
+	for i := 0; i < len(sorted); i++ {
+		fmt.Printf("Character name is %v, and their health is at %v\n", sorted[i].Name, sorted[i].Health)
+	}
+	// for _, i := range sorted {
+	// 	fmt.Printf("")
+	// }
+}
+
+func sortOrderByInitative(characterSlice []Character) []Character {
+	if len(characterSlice) < 2 {
+		return characterSlice
+	} else {
+		pivot := characterSlice[0]
+		less := []Character{}
+		greater := []Character{}
+
+		for _, i := range characterSlice[1:] {
+			if i.Initative >= pivot.Initative {
+				less = append(less, i)
+			} else {
+				greater = append(greater, i)
+			}
+		}
+
+		sortedLess := sortOrderByInitative(less)
+		sortedGreater := sortOrderByInitative(greater)
+
+		return append(append(sortedLess, pivot), sortedGreater...)
+	}
+
+}
+
+func createCharacter() Character {
+	var name string
+	var health int
+	var initativeBonus int
+	fmt.Println("What is the name of this character?")
+	fmt.Scanln(&name)
+	fmt.Printf("What is the health of %v?\n", name)
+	fmt.Scanln(&health)
+	fmt.Printf("What is the initative bonus of %v?\n", name)
+	fmt.Scanln(&initativeBonus)
+	return Character{Name: name, Health: health, InitativeBonus: initativeBonus}
 }
