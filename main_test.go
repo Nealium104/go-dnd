@@ -1,8 +1,9 @@
 package main
 
-import(
+import (
 	"testing"
 )
+
 // type Character struct {
 // 	Name           string
 // 	Health         int
@@ -10,23 +11,27 @@ import(
 // 	Initative      int
 // 	ItemList       []Item
 // }
-cSlice := []Character{
-	Character{
-		Name: "Billy",
-		Health: 10,
-		InitativeBonus: 3,
-	},
-	Character{
-		Name: "Bob",
-		Health: 20,
-		InitativeBonus: 2,			
-	},
-	Character{
-		Name: "Jones",
-		Health: 30,
-		InitativeBonus: 1,			
-	},
-}
-func TestSortOrderByInitative(t *testing.T){
-	sortOrderByInitative(cSlice)
+
+func TestSortOrderByInitative(t *testing.T) {
+	cSlice := []Character{}
+	result := sortOrderByInitative(cSlice)
+	if result != []Character{
+		{
+			Name:           "Billy",
+			Health:         10,
+			InitativeBonus: 3,
+		},
+		{
+			Name:           "Bob",
+			Health:         20,
+			InitativeBonus: 2,
+		},
+		{
+			Name:           "Jones",
+			Health:         30,
+			InitativeBonus: 1,
+		},
+	} {
+		t.Errorf("Result was incorrect %v", 8)
+	}
 }

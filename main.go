@@ -5,9 +5,25 @@ import (
 	"math/rand/v2"
 )
 
+type StatsList struct {
+	Strength     int
+	Str          int
+	Dexterity    int
+	Dex          int
+	Constitution int
+	Con          int
+	Wisdom       int
+	Wis          int
+	Intelligence int
+	Int          int
+	Charisma     int
+	Cha          int
+}
+
 type Character struct {
+	StatsList
 	Name           string
-	Health         int
+	BaseHealth     int
 	InitativeBonus int
 	Initative      int
 	ItemList       []Item
@@ -29,16 +45,35 @@ func main() {
 	fmt.Println("Rolling initative!")
 	for i := 0; i < len(characterSlice); i++ {
 		currentCharacter := characterSlice[i]
-		roll := rand.IntN(20)
-		fmt.Printf("%v rolled a %v. Their bonus is %v, so their initative is %v\n", currentCharacter.Name, roll, currentCharacter.InitativeBonus, roll+currentCharacter.InitativeBonus)
+		rollInitative(currentCharacter)
 	}
 	sorted := sortOrderByInitative(characterSlice)
 	for i := 0; i < len(sorted); i++ {
 		fmt.Printf("Character name is %v, and their health is at %v\n", sorted[i].Name, sorted[i].Health)
 	}
-	// for _, i := range sorted {
-	// 	fmt.Printf("")
-	// }
+	for i := 0; i < len(sorted); i++ {
+		character := sorted[i]
+		var res string
+		fmt.Printf("It is %v's turn\n", character.Name)
+		fmt.Println("Press enter for next character, or type exit to exit")
+		fmt.Scanln(&res)
+		if res == "exit" {
+			break
+		}
+		if i == len(sorted)-1 {
+			i = -1
+		}
+	}
+}
+
+func roll() int {
+	return rand.IntN(20)
+}
+
+func rollInitative(character Character) {
+	roll := roll()
+	character.Initative = roll + character.InitativeBonus
+	fmt.Printf("%v rolled a %v. Their bonus is %v, so their initative is %v\n", character.Name, roll, character.InitativeBonus, roll+character.InitativeBonus)
 }
 
 func sortOrderByInitative(characterSlice []Character) []Character {
