@@ -47,9 +47,9 @@ func main() {
 		currentCharacter := characterSlice[i]
 		rollInitative(currentCharacter)
 	}
-	sorted := sortOrderByInitative(characterSlice)
+	sorted := sortInitativeDescending(characterSlice)
 	for i := 0; i < len(sorted); i++ {
-		fmt.Printf("Character name is %v, and their health is at %v\n", sorted[i].Name, sorted[i].Health)
+		fmt.Printf("Character name is %v, and their health is at %v\n", sorted[i].Name, sorted[i].BaseHealth)
 	}
 	for i := 0; i < len(sorted); i++ {
 		character := sorted[i]
@@ -73,10 +73,10 @@ func roll() int {
 func rollInitative(character Character) {
 	roll := roll()
 	character.Initative = roll + character.InitativeBonus
-	fmt.Printf("%v rolled a %v. Their bonus is %v, so their initative is %v\n", character.Name, roll, character.InitativeBonus, roll+character.InitativeBonus)
+	fmt.Printf("%v rolled a %v. Their bonus is %v, so their initative is %v\n", character.Name, roll, character.InitativeBonus, roll+character.Initative)
 }
 
-func sortOrderByInitative(characterSlice []Character) []Character {
+func sortInitativeDescending(characterSlice []Character) []Character {
 	if len(characterSlice) < 2 {
 		return characterSlice
 	} else {
@@ -92,8 +92,8 @@ func sortOrderByInitative(characterSlice []Character) []Character {
 			}
 		}
 
-		sortedLess := sortOrderByInitative(less)
-		sortedGreater := sortOrderByInitative(greater)
+		sortedLess := sortInitativeDescending(less)
+		sortedGreater := sortInitativeDescending(greater)
 
 		return append(append(sortedLess, pivot), sortedGreater...)
 	}
@@ -110,5 +110,5 @@ func createCharacter() Character {
 	fmt.Scanln(&health)
 	fmt.Printf("What is the initative bonus of %v?\n", name)
 	fmt.Scanln(&initativeBonus)
-	return Character{Name: name, Health: health, InitativeBonus: initativeBonus}
+	return Character{Name: name, BaseHealth: health, InitativeBonus: initativeBonus}
 }
