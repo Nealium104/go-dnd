@@ -91,15 +91,15 @@ func saveCharacter(c Character) {
 		return
 	}
 
-	file, err := os.Create(fmt.Sprintf("%v.json", c.Name))
+	file, err := os.Create(fmt.Sprintf("%s.json", c.Name))
 	if err != nil {
-		log.Fatalf("error with file creation: %v", err)
+		log.Fatalf("error with file creation: %s", err)
 	}
 	defer file.Close()
 
 	_, err = file.Write(marshaled)
 	if err != nil {
-		log.Fatalf("Error writing to file: %v", err)
+		log.Fatalf("Error writing to file: %s", err)
 	}
 }
 
