@@ -3,158 +3,177 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
-	"math/rand/v2"
 	"os"
-	"sort"
+	"path/filepath"
+	"strings"
+
+	"github.com/google/uuid"
 )
 
-type StatsList struct {
-	Strength     int
-	Str          int
-	Dexterity    int
-	Dex          int
-	Constitution int
-	Con          int
-	Wisdom       int
-	Wis          int
-	Intelligence int
-	Int          int
-	Charisma     int
-	Cha          int
-}
+var characterDirectory string
 
 type Character struct {
-	StatsList
-	Name           string `json:"name"`
-	BaseHealth     int    `json:"BaseHealth"`
-	InitativeBonus int    `json:"InitativeBonus"`
-	Initative      int    `json:"Initative"`
-	ItemList       []Item `json:"ItemList"`
+	Name   string `json:"name"`
+	Id     string `json:"id"`
+	Health int    `json:"health"`
+	Str    int    `json:"str"`
+	Dex    int    `json:"dex"`
+	Con    int    `json:"con"`
+	Int    int    `json:"int"`
+	Wis    int    `json:"wis"`
+	Cha    int    `json:"cha"`
+	Stats
 }
 
-type Item struct {
-	Name  string
-	Bonus int
-}
-
-type CombatList struct {
-	CharacterList []Character
-}
-
-func roll() int {
-	return rand.IntN(20)
-}
-
-func rollInitative(character Character) {
-	roll := roll()
-	character.Initative = roll + character.InitativeBonus
-	fmt.Printf("%v rolled a %v. Their bonus is %v, so their initative is %v\n", character.Name, roll, character.InitativeBonus, character.Initative)
-}
-
-func sortOrderByInitative(characterSlice []Character) []Character {
-	sort.Slice(characterSlice, func(i, j int) bool {
-		return characterSlice[i].Initative > characterSlice[j].Initative
-	})
-	return characterSlice
-}
-
-func deriveBonus(stat int) int {
-	bonus := (stat - 10) / 2
-	return bonus
-}
-
-func createCharacter(name string, health int, initativeBonus int) Character {
-	c := Character{Name: name, BaseHealth: health, InitativeBonus: initativeBonus}
-	saveCharacter(c)
-	return c
-}
-
-func promptCharacter() Character {
-	var name string
-	var health int
-	var initativeBonus int
-	fmt.Println("What is the name of this character?")
-	fmt.Scanln(&name)
-	fmt.Printf("What is the health of %v?\n", name)
-	fmt.Scanln(&health)
-	fmt.Printf("What is the initative bonus of %v?\n", name)
-	fmt.Scanln(&initativeBonus)
-	saveCharacter(createCharacter(name, health, initativeBonus))
-	return createCharacter(name, health, initativeBonus)
-}
-
-func saveCharacter(c Character) {
-	marshaled, err := json.Marshal(c)
-	if err != nil {
-		fmt.Println("Marshal err:", err)
-		return
-	}
-
-	file, err := os.Create(fmt.Sprintf("%s.json", c.Name))
-	if err != nil {
-		log.Fatalf("error with file creation: %s", err)
-	}
-	defer file.Close()
-
-	_, err = file.Write(marshaled)
-	if err != nil {
-		log.Fatalf("Error writing to file: %s", err)
-	}
+type Stats struct {
+	Strength     int
+	Dexterity    int
+	Constitution int
+	Intelligence int
+	Wisdom       int
+	Charisma     int
 }
 
 func main() {
-	characterSlice := []Character{}
-	var amount int
-	fmt.Println("Hello, go-dnd! How many monsters and characters will you be using?")
-	fmt.Scanln(&amount)
-	for i := 0; i < amount; i++ {
-		characterSlice = append(characterSlice, promptCharacter())
-	}
-	fmt.Println("Rolling initative!")
-	for i := 0; i < len(characterSlice); i++ {
-		currentCharacter := characterSlice[i]
-		rollInitative(currentCharacter)
-	}
-	sorted := sortInitativeDescending(characterSlice)
-	for i := 0; i < len(sorted); i++ {
-		fmt.Printf("Character name is %v, and their health is at %v\n", sorted[i].Name, sorted[i].BaseHealth)
-	}
-	for i := 0; i < len(sorted); i++ {
-		character := sorted[i]
-		var res string
-		fmt.Printf("It is %v's turn\n", character.Name)
-		fmt.Println("Press enter for next character, or type exit to exit")
-		fmt.Scanln(&res)
-		if res == "exit" {
-			break
-		}
-		if i == len(sorted)-1 {
-			i = -1
-		}
+	characterDirectory = "./assets/characters/"
+	for {
+		cliOptions()
 	}
 }
 
-func sortInitativeDescending(characterSlice []Character) []Character {
-	if len(characterSlice) < 2 {
-		return characterSlice
-	} else {
-		pivot := characterSlice[0]
-		less := []Character{}
-		greater := []Character{}
+// func calculateStatBonus(stat int) int {
+// 	statBonus := (stat - 10) / 2
+// 	return statBonus
+// }
 
-		for _, i := range characterSlice[1:] {
-			if i.Initative >= pivot.Initative {
-				less = append(less, i)
-			} else {
-				greater = append(greater, i)
-			}
+func cliOptions() {
+	blue := "\033[34m"
+	reset := "\033[0m"
+	var command string
+
+	fmt.Println(string(blue), "What would you like to do?", string(reset))
+	fmt.Println("c to create a character, l for list all current characters, or e to exit")
+	fmt.Scanln(&command)
+
+	if strings.ToLower(command) == "c" {
+		c := gatherCLICharacter()
+		c.writeCharacter(characterDirectory)
+		displayCharacter(c)
+	} else if strings.ToLower(command) == "l" {
+		allCharacters := allCharacters()
+		for _, c := range allCharacters {
+			fmt.Println(c.Name)
 		}
+	} else if strings.ToLower(command) == "e" {
+		os.Exit(1)
+	}
+}
 
-		sortedLess := sortInitativeDescending(less)
-		sortedGreater := sortInitativeDescending(greater)
+func gatherCLICharacter() Character {
+	var c Character
+	var n string
+	var h int
 
-		return append(append(sortedLess, pivot), sortedGreater...)
+	fmt.Println("What is this character's name?")
+	fmt.Scan(&n)
+
+	fmt.Println("What is the base health of this character?")
+	fmt.Scan(&h)
+
+	c.Name = n
+	c.Id = uuid.New().String()
+	c.Health = h
+
+	var command string
+	fmt.Println("Would you like to fill out stats? Y or n?")
+	fmt.Scan(&command)
+	var s Stats
+	if strings.ToLower(command) == "y" {
+		fmt.Print("Strength:")
+		fmt.Scan(&s.Strength)
+
+		fmt.Print("Dexterity:")
+		fmt.Scan(&s.Dexterity)
+
+		fmt.Print("Constitution:")
+		fmt.Scan(&s.Constitution)
+
+		fmt.Print("Intelligence:")
+		fmt.Scan(&s.Intelligence)
+
+		fmt.Print("Wisdom:")
+		fmt.Scan(&s.Wisdom)
+
+		fmt.Print("Charisma:")
+		fmt.Scan(&s.Charisma)
 	}
 
+	return c
+}
+
+func (c *Character) writeCharacter(cDirectory string) error {
+	jsonData, err := json.Marshal(c)
+	if err != nil {
+		return err
+	}
+	os.WriteFile(fmt.Sprintf("%s%s.json", cDirectory, c.Id), jsonData, 0764)
+	return nil
+}
+
+func displayCharacter(c Character) {
+	fmt.Printf("Name: %s\n", c.Name)
+	fmt.Printf("Health: %d\n", c.Health)
+}
+
+func loadCharacter(id string) Character {
+	cFile, err := os.Open(fmt.Sprintf("%s%s.json", characterDirectory, id))
+	if err != nil {
+		log.Fatal("Error opening loadCharacter file: ", err)
+	}
+	defer cFile.Close()
+
+	byteValue, err := io.ReadAll(cFile)
+	if err != nil {
+		log.Fatal("Err reading loadCharacter file: ", err)
+	}
+
+	var c Character
+	marshalErr := json.Unmarshal(byteValue, &c)
+	if marshalErr != nil {
+		log.Fatal("Error unmarshaling in loadCharacter: ", err)
+	}
+	return c
+}
+
+func allCharacters() []Character {
+	characterSlice := make([]Character, 0)
+	entries, err := os.ReadDir(characterDirectory)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, entry := range entries {
+		character := Character{}
+		if entry.IsDir() {
+			continue
+		}
+
+		filePath := filepath.Join(characterDirectory, entry.Name())
+
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = json.Unmarshal(data, &character)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		c := Character{Name: character.Name, Id: character.Id, Health: character.Health}
+		characterSlice = append(characterSlice, c)
+	}
+	return characterSlice
 }
