@@ -116,7 +116,7 @@ func main() {
 		currentCharacter := characterSlice[i]
 		rollInitative(currentCharacter)
 	}
-	sorted := sortOrderByInitative(characterSlice)
+	sorted := sortInitativeDescending(characterSlice)
 	for i := 0; i < len(sorted); i++ {
 		fmt.Printf("Character name is %v, and their health is at %v\n", sorted[i].Name, sorted[i].BaseHealth)
 	}
@@ -133,4 +133,28 @@ func main() {
 			i = -1
 		}
 	}
+}
+
+func sortInitativeDescending(characterSlice []Character) []Character {
+	if len(characterSlice) < 2 {
+		return characterSlice
+	} else {
+		pivot := characterSlice[0]
+		less := []Character{}
+		greater := []Character{}
+
+		for _, i := range characterSlice[1:] {
+			if i.Initative >= pivot.Initative {
+				less = append(less, i)
+			} else {
+				greater = append(greater, i)
+			}
+		}
+
+		sortedLess := sortInitativeDescending(less)
+		sortedGreater := sortInitativeDescending(greater)
+
+		return append(append(sortedLess, pivot), sortedGreater...)
+	}
+
 }
